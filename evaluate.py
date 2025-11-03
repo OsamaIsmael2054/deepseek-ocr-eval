@@ -32,9 +32,9 @@ def load_model(model_name: str = 'deepseek-ai/DeepSeek-OCR', use_flash_attention
     print(f"Loading model: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     if use_flash_attention:
-        model = AutoModel.from_pretrained(model_name, attn_implementation='flash_attention_2', trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map='auto')
+        model = AutoModel.from_pretrained(model_name, attn_implementation='flash_attention_2', trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map='cuda:0')
     else:
-        model = AutoModel.from_pretrained(model_name, trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map='auto')
+        model = AutoModel.from_pretrained(model_name, trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map='cuda:0')
     model = model.eval()
     print("Model loaded successfully!")
     return model, tokenizer
