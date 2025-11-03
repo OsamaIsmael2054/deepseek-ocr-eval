@@ -324,17 +324,17 @@ def main():
     parser.add_argument('--output-dir', type=str, default='output',
                        help='Directory to save outputs (default: output)')
     parser.add_argument('--use-flash-attention', action='store_true',
-                       help='Use flash attention')
+                       help='Use flash attention', default=False)
     parser.add_argument('--base-size', type=int, default=1024,
                        help='Base size for the model')
     parser.add_argument('--image-size', type=int, default=640,
                        help='Image size for the model')
     parser.add_argument('--crop-mode', action='store_true',
-                       help='Crop mode for the model')
+                       help='Crop mode for the model', default=True)
     parser.add_argument('--save-results', action='store_true',
-                       help='Save results')
+                       help='Save results', default=False)
     parser.add_argument('--eval-mode', action='store_true',
-                       help='Evaluation mode for the model')
+                       help='Evaluation mode for the model', default=True)
 
     args = parser.parse_args()
     
