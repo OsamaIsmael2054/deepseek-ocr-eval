@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import re
 import json
 from pathlib import Path
 
@@ -206,6 +207,7 @@ def evaluate_dataset(
             
             # Get ground truth
             ground_truth = sample.get('text', '')
+            ground_truth = re.sub(r'<[^>]+>','',ground_truth)
             
             # Calculate WER and CER if ground truth is available
             sample_wer = None

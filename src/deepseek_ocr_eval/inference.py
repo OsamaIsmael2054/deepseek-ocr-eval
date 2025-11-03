@@ -30,7 +30,6 @@ def infer_with_image_object(
     base_size: int = 1024,
     image_size: int = 640,
     crop_mode: bool = True,
-    test_compress: bool = False,
     save_results: bool = False,
     eval_mode: bool = True
 ) -> Optional[str]:
@@ -303,7 +302,6 @@ def infer_with_image_object(
         if outputs.endswith(stop_str):
             outputs = outputs[:-len(stop_str)]
         outputs = outputs.strip()
-        outputs = re.sub(r'<[^>]+>','',outputs)
         return outputs
 
     return None
@@ -592,5 +590,5 @@ def infer_with_image_path(model, tokenizer,  image_file:str, prompt='<image>\n<|
                 outputs = outputs[:-len(stop_str)]
             # re_match
             outputs = outputs.strip()
-            outputs = re.sub(r'<[^>]+>','',outputs)
             return outputs
+        return None
