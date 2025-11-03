@@ -70,12 +70,10 @@ def load_image_from_file(path: str) -> Image.Image:
 def evaluate_single_image(
     model, 
     tokenizer, 
-    use_flash_attention: bool = False,
     image_path: str = None,
     image_url: str = None,
     prompt: str = '<image>\n<|grounding|>Convert the document to markdown. ',
     output_path: str = 'output',
-    clean_text: bool = True,
     base_size: int = 1024,
     image_size: int = 640,
     crop_mode: bool = True,
@@ -131,10 +129,6 @@ def evaluate_single_image(
     else:
         raise ValueError("Either image_path or image_url must be provided")
     
-    # Clean text if requested
-    if clean_text and result:
-        result = extract_clean_text(result)
-    
     return result
 
 
@@ -146,8 +140,6 @@ def evaluate_dataset(
     num_samples: int = None,
     prompt: str = '<image>\n<|grounding|>Convert the document to markdown. ',
     output_dir: str = 'output',
-    clean_text: bool = True,
-    use_flash_attention: bool = False,
     base_size: int = 1024,
     image_size: int = 640,
     crop_mode: bool = False,
@@ -165,7 +157,11 @@ def evaluate_dataset(
         num_samples: Number of samples to evaluate (None = all)
         prompt: Prompt for the model
         output_dir: Base directory for outputs
-        clean_text: Whether to clean the output text
+        base_size: Base size for the model
+        image_size: Image size for the model
+        crop_mode: Crop mode for the model
+        save_results: Whether to save results
+        eval_mode: Evaluation mode for the model
     """
     print(f"Loading dataset: {dataset_name}, split: {dataset_split}")
     ds = load_dataset(dataset_name, split=dataset_split)
@@ -198,7 +194,6 @@ def evaluate_dataset(
                 image, 
                 prompt=prompt,
                 output_path="",  # Don't save individual files
-                use_flash_attention=use_flash_attention,
                 base_size=base_size,
                 image_size=image_size,
                 crop_mode=crop_mode,
@@ -206,9 +201,8 @@ def evaluate_dataset(
                 eval_mode=eval_mode
             )
             
-            # Clean text if requested
-            if clean_text and result:
-                result = extract_clean_text(result)
+            # Clean text
+            result = extract_clean_text(result) if result else ""
             
             # Get ground truth
             ground_truth = sample.get('text', '')
@@ -233,7 +227,7 @@ def evaluate_dataset(
                 'idx': idx,
                 'image_url': image_url,
                 'reference': ground_truth,
-                'prediction': result if result else "",
+                'prediction': result,
                 'wer': sample_wer,
                 'cer': sample_cer
             }
@@ -329,9 +323,19 @@ def main():
                        help='Prompt for the model')
     parser.add_argument('--output-dir', type=str, default='output',
                        help='Directory to save outputs (default: output)')
-    parser.add_argument('--no-clean-text', action='store_true',
-                       help='Disable text cleaning')
-    
+    parser.add_argument('--use-flash-attention', action='store_true',
+                       help='Use flash attention')
+    parser.add_argument('--base-size', type=int, default=1024,
+                       help='Base size for the model')
+    parser.add_argument('--image-size', type=int, default=640,
+                       help='Image size for the model')
+    parser.add_argument('--crop-mode', action='store_true',
+                       help='Crop mode for the model')
+    parser.add_argument('--save-results', action='store_true',
+                       help='Save results')
+    parser.add_argument('--eval-mode', action='store_true',
+                       help='Evaluation mode for the model')
+
     args = parser.parse_args()
     
     # Validate arguments
@@ -339,7 +343,7 @@ def main():
         parser.error("Must provide either --image-path, --image-url, or --dataset")
     
     # Load model
-    model, tokenizer = load_model(args.model)
+    model, tokenizer = load_model(args.model, args.use_flash_attention)
     
     # Evaluate
     if args.dataset:
@@ -351,7 +355,11 @@ def main():
             num_samples=args.num_samples,
             prompt=args.prompt,
             output_dir=args.output_dir,
-            clean_text=not args.no_clean_text
+            base_size = args.base_size,
+            image_size = args.image_size,
+            crop_mode = args.crop_mode,
+            save_results = args.save_results,
+            eval_mode = args.eval_mode
         )
     else:
         evaluate_single_image(
@@ -361,7 +369,11 @@ def main():
             image_url=args.image_url,
             prompt=args.prompt,
             output_path=args.output_dir,
-            clean_text=not args.no_clean_text
+            base_size = args.base_size,
+            image_size = args.image_size,
+            crop_mode = args.crop_mode,
+            save_results = args.save_results,
+            eval_mode = args.eval_mode
         )
 
 
