@@ -20,7 +20,7 @@ import jiwer
 from deepseek_ocr_eval import infer_with_image_path, infer_with_image_object, extract_clean_text
 
 
-def load_model(model_name: str = 'deepseek-ai/DeepSeek-OCR', use_flash_attention: bool = False):
+def load_model(model_name: str = 'deepseek-ai/DeepSeek-OCR', use_flash_attention: bool = False, gpu_num: int = 0):
     """
     Load the DeepSeek OCR model and tokenizer.
     
@@ -35,7 +35,7 @@ def load_model(model_name: str = 'deepseek-ai/DeepSeek-OCR', use_flash_attention
     if use_flash_attention:
         model = AutoModel.from_pretrained(model_name, attn_implementation='flash_attention_2', trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map='cuda:0')
     else:
-        model = AutoModel.from_pretrained(model_name, trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map='cuda:0')
+        model = AutoModel.from_pretrained(model_name, trust_remote_code=True, use_safetensors=True, torch_dtype=torch.bfloat16, device_map=f'cuda:{gpu_num}')
     model = model.eval()
     print("Model loaded successfully!")
     return model, tokenizer
@@ -337,6 +337,7 @@ def main():
                        help='Save results', default=False)
     parser.add_argument('--eval-mode', action='store_true',
                        help='Evaluation mode for the model', default=True)
+    parser.add_argument('--gpu-num', type=int, default=0,)
 
     args = parser.parse_args()
     
@@ -345,7 +346,7 @@ def main():
         parser.error("Must provide either --image-path, --image-url, or --dataset")
     
     # Load model
-    model, tokenizer = load_model(args.model, args.use_flash_attention)
+    model, tokenizer = load_model(args.model, args.use_flash_attention, gpu_num=arg.gpu_num)
     
     # Evaluate
     if args.dataset:
