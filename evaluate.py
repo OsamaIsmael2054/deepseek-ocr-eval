@@ -139,6 +139,8 @@ def evaluate_dataset(
     dataset_name: str = "NAMAA-Space/QariOCR-v0.3-markdown-mixed-dataset",
     dataset_split: str = "test",
     num_samples: int = None,
+    start_index: int = None,
+    end_index: int = None,
     prompt: str = '<image>\n<|grounding|>Convert the document to markdown. ',
     output_dir: str = 'output',
     base_size: int = 1024,
@@ -155,7 +157,9 @@ def evaluate_dataset(
         tokenizer: Tokenizer
         dataset_name: HuggingFace dataset name
         dataset_split: Dataset split to use
-        num_samples: Number of samples to evaluate (None = all)
+        num_samples: Number of samples to evaluate from start (None = all, ignored if start_index/end_index are set)
+        start_index: Starting index for dataset subset (None = from beginning)
+        end_index: Ending index for dataset subset (None = to end)
         prompt: Prompt for the model
         output_dir: Base directory for outputs
         base_size: Base size for the model
@@ -167,7 +171,22 @@ def evaluate_dataset(
     print(f"Loading dataset: {dataset_name}, split: {dataset_split}")
     ds = load_dataset(dataset_name, split=dataset_split)
     
-    if num_samples:
+    # Handle dataset subsetting
+    if start_index is not None or end_index is not None:
+        # Use start_index and end_index for range selection
+        start = start_index if start_index is not None else 0
+        end = end_index if end_index is not None else len(ds)
+        end = min(end, len(ds))  # Ensure end doesn't exceed dataset length
+        
+        if start >= len(ds):
+            raise ValueError(f"start_index ({start}) is greater than or equal to dataset length ({len(ds)})")
+        if start >= end:
+            raise ValueError(f"start_index ({start}) must be less than end_index ({end})")
+        
+        print(f"Selecting subset from index {start} to {end}")
+        ds = ds.select(range(start, end))
+    elif num_samples:
+        # Fall back to num_samples if start_index/end_index not provided
         ds = ds.select(range(min(num_samples, len(ds))))
     
     print(f"Evaluating {len(ds)} samples...")
@@ -317,7 +336,11 @@ def main():
     parser.add_argument('--dataset-split', type=str, default='test',
                        help='Dataset split to use (default: test)')
     parser.add_argument('--num-samples', type=int,
-                       help='Number of samples to evaluate (default: all)')
+                       help='Number of samples to evaluate from start (default: all, ignored if --start-index or --end-index are set)')
+    parser.add_argument('--start-index', type=int,
+                       help='Starting index for dataset subset (e.g., 500 to start from sample 500)')
+    parser.add_argument('--end-index', type=int,
+                       help='Ending index for dataset subset (e.g., 1000 to end at sample 1000)')
     
     # Inference arguments
     parser.add_argument('--prompt', type=str,
@@ -346,7 +369,7 @@ def main():
         parser.error("Must provide either --image-path, --image-url, or --dataset")
     
     # Load model
-    model, tokenizer = load_model(args.model, args.use_flash_attention, gpu_num=arg.gpu_num)
+    model, tokenizer = load_model(args.model, args.use_flash_attention, gpu_num=args.gpu_num)
     
     # Evaluate
     if args.dataset:
@@ -356,6 +379,8 @@ def main():
             dataset_name=args.dataset,
             dataset_split=args.dataset_split,
             num_samples=args.num_samples,
+            start_index=args.start_index,
+            end_index=args.end_index,
             prompt=args.prompt,
             output_dir=args.output_dir,
             base_size = args.base_size,
